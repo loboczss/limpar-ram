@@ -1,6 +1,6 @@
 use std::{fs, path::PathBuf};
 
-use crate::limpeza;
+use crate::{arquivos, limpeza};
 
 pub struct Config {
     pub mascara: u32,
@@ -17,15 +17,28 @@ impl Default for Config {
     }
 }
 
-fn caminho() -> PathBuf {
-    let base = std::env::var_os("APPDATA").map(PathBuf::from).unwrap_or_else(|| PathBuf::from("."));
-    base.join("memlimpa").join("config.ini")
+const ARQUIVO: &str = "config.ini";
+
+/// Usado só quando o programa roda SEM admin (aí gravar no perfil é seguro).
+fn caminho_usuario() -> Option<PathBuf> {
+    std::env::var_os("APPDATA").map(|b| PathBuf::from(b).join("memlimpa").join(ARQUIVO))
+}
+
+fn ler_usuario() -> Option<String> {
+    fs::read_to_string(caminho_usuario()?).ok()
 }
 
 impl Config {
+    /// Elevado: lê de %ProgramData%\memlimpa e, se não houver, do %APPDATA% (migração).
+    /// Sem admin: o contrário.
     pub fn carregar() -> Self {
+        let texto = if limpeza::eh_admin() {
+            arquivos::ler_sistema(ARQUIVO).or_else(ler_usuario)
+        } else {
+            ler_usuario().or_else(|| arquivos::ler_sistema(ARQUIVO))
+        };
         let mut c = Self::default();
-        let Ok(texto) = fs::read_to_string(caminho()) else { return c };
+        let Some(texto) = texto else { return c };
         for linha in texto.lines() {
             let Some((chave, valor)) = linha.split_once('=') else { continue };
             let v = valor.trim();
@@ -53,15 +66,17 @@ impl Config {
     }
 
     pub fn salvar(&self) {
-        let p = caminho();
-        let Some(pasta) = p.parent() else { return };
-        crate::gravar_na_pasta_do_usuario(
-            pasta,
-            "config.ini",
-            &format!(
-                "mascara=0x{:02X}\nauto_porcentagem={}\nauto_minutos={}\navisos={}\n",
-                self.mascara, self.auto_porcentagem, self.auto_minutos, self.avisos as u8
-            ),
+        let texto = format!(
+            "mascara=0x{:02X}\nauto_porcentagem={}\nauto_minutos={}\navisos={}\n",
+            self.mascara, self.auto_porcentagem, self.auto_minutos, self.avisos as u8
         );
+        if limpeza::eh_admin() {
+            arquivos::gravar_sistema(ARQUIVO, &texto);
+        } else if let Some(p) = caminho_usuario() {
+            if let Some(pasta) = p.parent() {
+                let _ = fs::create_dir_all(pasta);
+            }
+            let _ = fs::write(p, texto);
+        }
     }
 }

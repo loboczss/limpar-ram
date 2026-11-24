@@ -106,7 +106,7 @@ schtasks /run /tn memlimpa         # limpeza padrão
 schtasks /run /tn memlimpa-tudo    # limpeza completa
 ```
 
-O resultado da última limpeza fica em `%LOCALAPPDATA%\memlimpa\ultima-limpeza.txt`.
+O resultado da última limpeza fica em `C:\ProgramData\memlimpa\ultima-limpeza.txt`.
 
 ## 🧠 O que é limpo
 
@@ -147,7 +147,8 @@ src/
 ├── main.rs      # linha de comando e entrada
 ├── limpeza.rs   # as chamadas ao kernel (o coração)
 ├── bandeja.rs   # ícone, menu, limpeza automática (Win32 puro)
-└── config.rs    # %APPDATA%\memlimpa\config.ini
+├── config.rs    # leitura e gravação do config.ini
+└── arquivos.rs  # gravação segura em C:\ProgramData\memlimpa
 scripts/
 ├── instalar.ps1
 └── desinstalar.ps1
@@ -157,7 +158,7 @@ Sem framework de interface: o ícone é desenhado na hora com GDI e o menu é o 
 
 ## ⚙️ Configuração
 
-Fica em `%APPDATA%\memlimpa\config.ini`. O menu já mexe em tudo, mas dá para editar na mão (com o ícone fechado):
+Rodando como administrador (o normal, depois do instalador), fica em `C:\ProgramData\memlimpa\config.ini`. Sem admin, em `%APPDATA%\memlimpa\config.ini`. O menu já mexe em tudo, mas dá para editar na mão (com o ícone fechado; a pasta do ProgramData só aceita edição como admin):
 
 ```ini
 mascara=0xE7          ; regiões (bits: 01 working set, 02 cache, 04 standby baixa,

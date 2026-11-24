@@ -22,6 +22,20 @@ Start-Sleep -Milliseconds 500
 # Só pastas que apenas administradores podem alterar.
 Remove-Item (Join-Path $env:ProgramFiles 'memlimpa') -Recurse -Force -ErrorAction SilentlyContinue
 
+# %ProgramData%\memlimpa: só apaga se for uma pasta de verdade com dono admin/SYSTEM
+# (como o instalador deixa). Se for junction, remove só o link, sem entrar nele.
+$dados = Join-Path $env:ProgramData 'memlimpa'
+if (Test-Path -LiteralPath $dados) {
+    $item = Get-Item -LiteralPath $dados -Force
+    if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) {
+        [IO.Directory]::Delete($dados)
+    } elseif ((Get-Acl -LiteralPath $dados).Owner -match 'Administra|SYSTEM|SISTEMA') {
+        Remove-Item -LiteralPath $dados -Recurse -Force -ErrorAction SilentlyContinue
+    } else {
+        "não apaguei $dados: o dono não é administrador. Confira e apague na mão."
+    }
+}
+
 $pasta = Join-Path $env:ProgramFiles 'memlimpa'
 $path = [Environment]::GetEnvironmentVariable('Path', 'User')
 $novo = (($path -split ';') | Where-Object { $_ -and $_ -ne $pasta }) -join ';'

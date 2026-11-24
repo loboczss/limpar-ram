@@ -40,6 +40,27 @@ Copy-Item $Exe $destino -Force
 $antigo = Join-Path $env:USERPROFILE 'bin\memlimpa.exe'
 if (Test-Path $antigo) { Remove-Item $antigo -Force; "removida a cópia antiga: $antigo" }
 
+# Pasta de dados que o memlimpa elevado usa (config e última limpeza): só admin grava.
+# Se já existir algo suspeito com esse nome (junction, ou dono que não é admin/SYSTEM),
+# renomeia para o lado em vez de apagar: apagar recursivamente como admin poderia seguir
+# uma junction e apagar arquivos do sistema.
+$dados = Join-Path $env:ProgramData 'memlimpa'
+if (Test-Path -LiteralPath $dados) {
+    $item = Get-Item -LiteralPath $dados -Force
+    $dono = (Get-Acl -LiteralPath $dados).Owner
+    $confiavel = -not ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -and
+        ($dono -match 'Administra|SYSTEM|SISTEMA')
+    if (-not $confiavel) {
+        $lado = "$dados.suspeito-$(Get-Date -Format yyyyMMddHHmmss)"
+        Rename-Item -LiteralPath $dados -NewName (Split-Path $lado -Leaf)
+        "pasta suspeita movida para: $lado (confira e apague)"
+    }
+}
+New-Item -ItemType Directory -Force $dados | Out-Null
+icacls $dados /setowner '*S-1-5-32-544' | Out-Null
+icacls $dados /inheritance:r /grant:r '*S-1-5-18:(OI)(CI)F' '*S-1-5-32-544:(OI)(CI)F' '*S-1-5-32-545:(OI)(CI)RX' | Out-Null
+"pasta de dados: $dados (usuários só leem)"
+
 # Coloca a pasta no PATH do usuário, se ainda não estiver.
 $path = [Environment]::GetEnvironmentVariable('Path', 'User')
 if (($path -split ';') -notcontains $pasta) {
