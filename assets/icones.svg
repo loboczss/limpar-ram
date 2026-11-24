@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="420" height="110" viewBox="0 0 420 110" font-family="Segoe UI, Arial, sans-serif">
+  <rect width="420" height="110" rx="14" fill="#1f2329"/>
+  <g font-weight="700" text-anchor="middle">
+    <rect x="40" y="18" width="56" height="56" fill="#1f7a3a"/>
+    <text x="68" y="59" font-size="34" fill="#fff">45</text>
+    <text x="68" y="96" font-size="13" font-weight="400" fill="#c9d1d9">até 69%</text>
+
+    <rect x="182" y="18" width="56" height="56" fill="#b46a00"/>
+    <text x="210" y="59" font-size="34" fill="#fff">78</text>
+    <text x="210" y="96" font-size="13" font-weight="400" fill="#c9d1d9">70% a 84%</text>
+
+    <rect x="324" y="18" width="56" height="56" fill="#c02626"/>
+    <text x="352" y="59" font-size="34" fill="#fff">92</text>
+    <text x="352" y="96" font-size="13" font-weight="400" fill="#c9d1d9">85% ou mais</text>
+  </g>
+</svg>
