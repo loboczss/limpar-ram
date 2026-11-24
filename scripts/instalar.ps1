@@ -45,20 +45,35 @@ if (Test-Path $antigo) { Remove-Item $antigo -Force; "removida a cópia antiga: 
 # renomeia para o lado em vez de apagar: apagar recursivamente como admin poderia seguir
 # uma junction e apagar arquivos do sistema.
 $dados = Join-Path $env:ProgramData 'memlimpa'
-if (Test-Path -LiteralPath $dados) {
-    $item = Get-Item -LiteralPath $dados -Force
-    $dono = (Get-Acl -LiteralPath $dados).Owner
-    $confiavel = -not ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -and
-        ($dono -match 'Administra|SYSTEM|SISTEMA')
-    if (-not $confiavel) {
-        $lado = "$dados.suspeito-$(Get-Date -Format yyyyMMddHHmmss)"
-        Rename-Item -LiteralPath $dados -NewName (Split-Path $lado -Leaf)
-        "pasta suspeita movida para: $lado (confira e apague)"
+
+# Confiável = pasta de verdade (não junction/symlink) com dono SYSTEM ou Administradores (por SID).
+# Uma pasta assim não pode ser trocada por usuário comum: ele não tem permissão de apagar
+# nem renomear itens de admin dentro do ProgramData.
+function Test-PastaConfiavel([string]$p) {
+    if (-not (Test-Path -LiteralPath $p)) { return $false }
+    $item = Get-Item -LiteralPath $p -Force
+    if (-not $item.PSIsContainer -or ($item.Attributes -band [IO.FileAttributes]::ReparsePoint)) { return $false }
+    $dono = $item.GetAccessControl().GetOwner([Security.Principal.SecurityIdentifier]).Value
+    return $dono -in 'S-1-5-18', 'S-1-5-32-544'
+}
+
+if ((Test-Path -LiteralPath $dados) -and -not (Test-PastaConfiavel $dados)) {
+    $lado = "memlimpa.suspeito-$(Get-Date -Format yyyyMMddHHmmss)"
+    Rename-Item -LiteralPath $dados -NewName $lado
+    "pasta suspeita movida para: $(Join-Path $env:ProgramData $lado) (confira e apague)"
+}
+
+if (-not (Test-PastaConfiavel $dados)) {
+    # Cria já com dono e ACL finais numa operação só (nada de ajustar depois pelo caminho).
+    # P = não herda. SYSTEM e Administradores: tudo. Usuários: ler e executar.
+    $sd = New-Object System.Security.AccessControl.DirectorySecurity
+    $sd.SetSecurityDescriptorSddlForm('O:BAD:P(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)(A;OICI;0x1200a9;;;BU)')
+    [void][IO.Directory]::CreateDirectory($dados, $sd)
+    # Se alguém criou outra coisa nesse caminho entre o rename e o CreateDirectory, para aqui.
+    if (-not (Test-PastaConfiavel $dados)) {
+        throw "A pasta $dados não ficou como esperado (pode ter sido trocada). Nada foi alterado nela; confira e rode de novo."
     }
 }
-New-Item -ItemType Directory -Force $dados | Out-Null
-icacls $dados /setowner '*S-1-5-32-544' | Out-Null
-icacls $dados /inheritance:r /grant:r '*S-1-5-18:(OI)(CI)F' '*S-1-5-32-544:(OI)(CI)F' '*S-1-5-32-545:(OI)(CI)RX' | Out-Null
 "pasta de dados: $dados (usuários só leem)"
 
 # Coloca a pasta no PATH do usuário, se ainda não estiver.

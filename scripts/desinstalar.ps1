@@ -29,7 +29,8 @@ if (Test-Path -LiteralPath $dados) {
     $item = Get-Item -LiteralPath $dados -Force
     if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) {
         [IO.Directory]::Delete($dados)
-    } elseif ((Get-Acl -LiteralPath $dados).Owner -match 'Administra|SYSTEM|SISTEMA') {
+    } elseif ($item.GetAccessControl().GetOwner([Security.Principal.SecurityIdentifier]).Value -in 'S-1-5-18', 'S-1-5-32-544') {
+        # Dono admin/SYSTEM: só admin cria coisas lá dentro, então o conteúdo é confiável.
         Remove-Item -LiteralPath $dados -Recurse -Force -ErrorAction SilentlyContinue
     } else {
         "não apaguei ${dados}: o dono não é administrador. Confira e apague na mão."
