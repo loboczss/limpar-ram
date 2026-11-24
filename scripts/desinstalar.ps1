@@ -1,8 +1,15 @@
-# Remove o memlimpa: tarefas agendadas, executável e configuração. Pede admin uma vez.
-$admin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
-    [Security.Principal.WindowsBuiltInRole]::Administrator)
-if (-not $admin) {
-    Start-Process powershell -Verb RunAs -Wait -ArgumentList "-ExecutionPolicy Bypass -File `"$PSCommandPath`""
+# Remove o memlimpa: configuração, tarefas agendadas e executável. Pede admin uma vez.
+#
+# As pastas do perfil do usuário são apagadas ANTES de pedir admin: apagar recursivamente
+# como administrador numa pasta que o usuário controla poderia seguir uma junction plantada
+# ali e apagar arquivos do sistema.
+param([switch]$Elevado)
+
+if (-not $Elevado) {
+    foreach ($p in (Join-Path $env:APPDATA 'memlimpa'), (Join-Path $env:LOCALAPPDATA 'memlimpa')) {
+        if (Test-Path $p) { Remove-Item $p -Recurse -Force -ErrorAction SilentlyContinue; "apagado: $p" }
+    }
+    Start-Process powershell -Verb RunAs -Wait -ArgumentList "-ExecutionPolicy Bypass -File `"$PSCommandPath`" -Elevado"
     exit
 }
 
@@ -11,8 +18,13 @@ foreach ($t in 'memlimpa', 'memlimpa-tudo', 'memlimpa-bandeja') {
 }
 Get-Process memlimpa -ErrorAction SilentlyContinue | Stop-Process -Force
 Start-Sleep -Milliseconds 500
-Remove-Item (Join-Path $env:USERPROFILE 'bin\memlimpa.exe') -Force -ErrorAction SilentlyContinue
-Remove-Item (Join-Path $env:APPDATA 'memlimpa') -Recurse -Force -ErrorAction SilentlyContinue
-Remove-Item (Join-Path $env:LOCALAPPDATA 'memlimpa') -Recurse -Force -ErrorAction SilentlyContinue
+
+# Só pastas que apenas administradores podem alterar.
+Remove-Item (Join-Path $env:ProgramFiles 'memlimpa') -Recurse -Force -ErrorAction SilentlyContinue
+
+$pasta = Join-Path $env:ProgramFiles 'memlimpa'
+$path = [Environment]::GetEnvironmentVariable('Path', 'User')
+$novo = (($path -split ';') | Where-Object { $_ -and $_ -ne $pasta }) -join ';'
+if ($novo -ne $path) { [Environment]::SetEnvironmentVariable('Path', $novo, 'User') }
 "memlimpa removido."
 Start-Sleep 2

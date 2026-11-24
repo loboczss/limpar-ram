@@ -54,12 +54,11 @@ impl Config {
 
     pub fn salvar(&self) {
         let p = caminho();
-        if let Some(pasta) = p.parent() {
-            let _ = fs::create_dir_all(pasta);
-        }
-        let _ = fs::write(
-            &p,
-            format!(
+        let Some(pasta) = p.parent() else { return };
+        crate::gravar_na_pasta_do_usuario(
+            pasta,
+            "config.ini",
+            &format!(
                 "mascara=0x{:02X}\nauto_porcentagem={}\nauto_minutos={}\navisos={}\n",
                 self.mascara, self.auto_porcentagem, self.auto_minutos, self.avisos as u8
             ),

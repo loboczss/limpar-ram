@@ -85,11 +85,36 @@ fn cli(opcao: Option<&String>) -> i32 {
 /// para quem chamou via tarefa agendada (sem console) poder ler.
 fn registrar(texto: &str) {
     let Some(base) = std::env::var_os("LOCALAPPDATA") else { return };
-    let pasta = std::path::PathBuf::from(base).join("memlimpa");
-    let _ = std::fs::create_dir_all(&pasta);
     let agora = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map(|d| d.as_secs())
         .unwrap_or(0);
-    let _ = std::fs::write(pasta.join("ultima-limpeza.txt"), format!("unix={agora}\n{texto}\n"));
+    gravar_na_pasta_do_usuario(
+        &std::path::PathBuf::from(base).join("memlimpa"),
+        "ultima-limpeza.txt",
+        &format!("unix={agora}\n{texto}\n"),
+    );
+}
+
+fn eh_atalho(p: &std::path::Path) -> bool {
+    use std::os::windows::fs::MetadataExt;
+    const FILE_ATTRIBUTE_REPARSE_POINT: u32 = 0x400;
+    std::fs::symlink_metadata(p).is_ok_and(|m| m.file_attributes() & FILE_ATTRIBUTE_REPARSE_POINT != 0)
+}
+
+/// Grava `arquivo` em `pasta` (dentro do perfil do usuário). Rodando como admin, uma
+/// junction/symlink plantada ali redirecionaria a escrita para pastas do sistema; então
+/// recusa se a pasta, a pasta de cima ou o arquivo forem pontos de reanálise.
+pub fn gravar_na_pasta_do_usuario(pasta: &std::path::Path, arquivo: &str, conteudo: &str) {
+    if pasta.parent().is_some_and(eh_atalho) || eh_atalho(pasta) {
+        return;
+    }
+    if std::fs::create_dir_all(pasta).is_err() || eh_atalho(pasta) {
+        return;
+    }
+    let destino = pasta.join(arquivo);
+    if eh_atalho(&destino) {
+        return;
+    }
+    let _ = std::fs::write(destino, conteudo);
 }

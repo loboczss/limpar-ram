@@ -11,6 +11,7 @@ Mostra a % de RAM ao lado do relógio, limpa com um duplo clique e limpa sozinho
 ![Tamanho](https://img.shields.io/badge/.exe-~220%20KB-2ea043)
 ![Sem dependências](https://img.shields.io/badge/depend%C3%AAncias-zero-2ea043)
 ![Licença MIT](https://img.shields.io/badge/licen%C3%A7a-MIT-blue)
+[![Baixar](https://img.shields.io/github/v/release/loboczss/limpar-ram?label=baixar&logo=github)](https://github.com/loboczss/limpar-ram/releases/latest)
 
 <img src="assets/icones.svg" alt="O ícone da bandeja muda de cor conforme o uso da RAM" width="420">
 
@@ -32,6 +33,18 @@ Mostra a % de RAM ao lado do relógio, limpa com um duplo clique e limpa sozinho
 
 ## 📥 Instalar
 
+### Jeito fácil: baixar pronto
+
+1. Baixe o **[`memlimpa-windows-x64.zip`](https://github.com/loboczss/limpar-ram/releases/latest/download/memlimpa-windows-x64.zip)** na [página de Releases](https://github.com/loboczss/limpar-ram/releases/latest).
+2. Extraia numa pasta qualquer.
+3. Clique com o botão direito em `instalar.ps1` → **Executar com o PowerShell**.
+
+Só quer o programa, sem instalar? Baixe o [`memlimpa.exe`](https://github.com/loboczss/limpar-ram/releases/latest/download/memlimpa.exe) e abra com dois cliques.
+
+> 🛡️ O Windows SmartScreen pode avisar "o Windows protegeu o computador", porque o .exe não tem assinatura digital paga. Clique em **Mais informações → Executar assim mesmo**. Os hashes SHA-256 estão em `SHA256SUMS.txt`, na Release.
+
+### Compilando você mesmo
+
 Você precisa do [Rust](https://rustup.rs) (com as ferramentas de build do Visual Studio, que o `rustup` oferece instalar).
 
 ```powershell
@@ -43,7 +56,7 @@ powershell -ExecutionPolicy Bypass -File scripts\instalar.ps1
 
 O instalador pede permissão de administrador **uma vez** e:
 
-1. copia o `memlimpa.exe` para `%USERPROFILE%\bin` e coloca essa pasta no PATH;
+1. copia o `memlimpa.exe` para `C:\Program Files\memlimpa` e coloca essa pasta no PATH (é uma pasta que só administrador altera: como as tarefas rodam como admin, nenhum outro programa consegue trocar o .exe por outro);
 2. cria três tarefas agendadas que rodam como administrador sem perguntar de novo;
 3. abre o ícone na bandeja, que passa a abrir sozinho a cada login.
 
