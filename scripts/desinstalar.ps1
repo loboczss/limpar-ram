@@ -32,7 +32,7 @@ if (Test-Path -LiteralPath $dados) {
     } elseif ((Get-Acl -LiteralPath $dados).Owner -match 'Administra|SYSTEM|SISTEMA') {
         Remove-Item -LiteralPath $dados -Recurse -Force -ErrorAction SilentlyContinue
     } else {
-        "não apaguei $dados: o dono não é administrador. Confira e apague na mão."
+        "não apaguei ${dados}: o dono não é administrador. Confira e apague na mão."
     }
 }
 
